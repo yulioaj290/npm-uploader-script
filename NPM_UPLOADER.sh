@@ -39,6 +39,7 @@ if [[ ! -e "remove.lock" ]]; then
     FILE_NAME=$1
     PREFIX_PKG=$2
     SPLIT_WEIGHT=$3
+    ZIP_LEVEL=$4
 
     NPM_INIT_START='{
       "name": "'
@@ -53,24 +54,37 @@ if [[ ! -e "remove.lock" ]]; then
 
     if [[ $FILE_NAME = '' ]]; then
         echo "[ ERROR ]: You must to provide the 'NAME' of the file or directory."
-        echo "  --> SYNTAX EXAMPLE: bash NPM_UPLOADER.sh video.mp4 video-clip 30"
+        echo "  --> SYNTAX EXAMPLE: bash NPM_UPLOADER.sh video.mp4 video-clip 30 9"
+        echo "  --> PARAMETER EXAMPLE: video.mp4"
         exit 128
     else
         if [[ ! -e "$FILE_NAME" ]]; then
             echo "[ ERROR ]: The file or directory $FILE_NAME doesn't exist."
-            echo "  --> SYNTAX EXAMPLE: bash NPM_UPLOADER.sh video.mp4 video-clip 30"
+            echo "  --> SYNTAX EXAMPLE: bash NPM_UPLOADER.sh video.mp4 video-clip 30 9"
             exit 128
         fi
     fi
 
     if [[ $PREFIX_PKG = '' ]]; then
         echo "[ ERROR ]: You must to provide the 'PREFIX' of NPM Packages."
-        echo "  --> SYNTAX EXAMPLE: bash NPM_UPLOADER.sh video.mp4 video-clip 30"
+        echo "  --> SYNTAX EXAMPLE: bash NPM_UPLOADER.sh video.mp4 video-clip 30 9"
+        echo "  --> PARAMETER EXAMPLE: video-clip"
         exit 128
     fi
 
     if [[ $SPLIT_WEIGHT = '' ]]; then
+        echo "[ INFO ]: Setting 'WHEIGHT' to 50."
         SPLIT_WEIGHT=50
+    fi
+
+    if [[ $ZIP_LEVEL = '' ]]; then
+        echo "[ INFO ]: Setting 'COMPRESSION LEVEL' to 5."
+        ZIP_LEVEL=5
+    elif [[ $ZIP_LEVEL -lt 1 ]] || [[ $ZIP_LEVEL -gt 9 ]]; then
+        echo "[ ERROR ]: You must to provide the 'COMPRESSION LEVEL' of 7Zip Packages, between 1 and 9."
+        echo "  --> SYNTAX EXAMPLE: bash NPM_UPLOADER.sh video.mp4 video-clip 30 9"
+        echo "  --> PARAMETER EXAMPLE: 9"
+        exit 128
     fi
 
     echo "--------------------------------------------------"
@@ -83,6 +97,7 @@ if [[ ! -e "remove.lock" ]]; then
     WEIGHT_IN_MB="$(( ($FILE_WEIGHT + (1024 - 1) ) / 1024 ))"
 
     echo "[ File Weight ]: $WEIGHT_IN_MB"" MB"
+    echo "[ Compression Level ]: $ZIP_LEVEL"
     echo "--------------------------------------------------"
 
     CHUNKS_NUM="$(( ($WEIGHT_IN_MB + ( $SPLIT_WEIGHT - 1) ) / $SPLIT_WEIGHT ))"
