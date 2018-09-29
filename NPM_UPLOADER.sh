@@ -105,7 +105,7 @@ if [[ ! -e "remove.lock" ]]; then
     echo "Splitting file into $CHUNKS_NUM chunks ..."
     echo "--------------------------------------------------"
 
-    7za a -t7z -m0=lzma -mx=9 -ms=on -v"$SPLIT_WEIGHT"m $PREFIX_PKG.7z $FILE_NAME
+    7za a -t7z -m0=lzma -mx=$ZIP_LEVEL -ms=on -v"$SPLIT_WEIGHT"m $PREFIX_PKG.7z $FILE_NAME
 
     echo "--------------------------------------------------"
     echo "Removing original file ..."
