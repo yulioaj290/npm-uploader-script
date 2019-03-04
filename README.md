@@ -36,3 +36,16 @@ To prepare the environment for the script follow this steps (based on Ubuntu 14.
   ```bash
   $ bash NPM_UPLOADER.sh video.mp4 video-clip 30
   ```
+  
+Parts of the Script command execution
+---------------------------------------
+  
+```bash
+$ bash NPM_UPLOADER.sh video.mp4 video-clip 30 9
+```
+  
+  * __NPM_UPLOADER.sh__: Name of the script file. __Required__.
+  * __video.mp4__: Name of the file to upload to npmjs.com as package(s). __Required__.
+  * __video-clip__:  Name _prefix_ of the packages to upload. __Required__.
+  * __30__: Upper limit of the size of the packages to upload. It must be expressed in MegaBytes (MB). __Required__.
+  * __9__: Level of compression of the packages to upload. It must be between 1 _(min compression)_ and 9 _(max compression)_.
