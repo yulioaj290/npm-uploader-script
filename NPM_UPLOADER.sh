@@ -254,7 +254,7 @@ elif [[ ! -e "remove.lock" ]]; then
 
 
             # unzip script
-            UNZIP_SCRIPT="$UNZIP_SCRIPT""mv node_modules/$CHUNK_DIR_NAME/$CURRENT_PKG ../ \n"
+            UNZIP_SCRIPT="$UNZIP_SCRIPT""mv ../$CHUNK_DIR_NAME/$CURRENT_PKG ../ \n"
         else
             # unzip script
             UNZIP_SCRIPT="$UNZIP_SCRIPT""mv $CURRENT_PKG ../ \n"
