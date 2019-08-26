@@ -31,6 +31,50 @@ check_npm_func(){
     fi
 }
 
+# Check if given URL is valid
+check_url_func(){
+    local regex='^(?:(?:(?:https?|ftp):)?\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:[/?#]\S*)?$';
+    
+    if [[ $1 =~ $regex ]]; then
+        echo "true"
+    else
+        echo "false"
+    fi
+}
+
+# Check if given Prefix is valid
+check_prefix_func(){
+    local regex="^[a-zA-Z0-9-]*$";
+    
+    if [[ $1 =~ $regex ]]; then
+        echo "true"
+    else
+        echo "false"
+    fi
+}
+
+# Check if given Weight is valid
+check_weight_func(){
+    local regex='^[1-9][0-9]*$';
+    
+    if [[ $1 =~ $regex ]]; then
+        echo "true"
+    else
+        echo "false"
+    fi
+}
+
+# Check if given ZIP Level is valid
+check_ziplevel_func(){
+    local regex='^[1-9]$';
+    
+    if [[ $1 =~ $regex ]]; then
+        echo "true"
+    else
+        echo "false"
+    fi
+}
+
 
 # ================================================
 # MAIN PROCESS
@@ -109,46 +153,68 @@ elif [[ ! -e "remove.lock" ]]; then
     # STEP 4: Set and Validate required arguments
     # ================================================
 
-    ARG_FILE=$1
-    ARG_PREFIX=$2
-    ARG_WEIGHT=$3
-    ARG_ZIPLV=$4
+    ARG_PREFIX=$1
+    ARG_WEIGHT=$2
+    ARG_ZIPLV=$3
+    shift 3
+    ARG_FILE=("$@")     # Assign rest of arguments, like an array of Files/URLs
 
     if [[ $ARG_FILE = '' ]]; then
         echo "[ ERROR ]: You must to provide the \"NAME\" of the file or directory."
         exit 128
-    else
-        if [[ ! -e "$ARG_FILE" && "$ARG_URL" == "false" ]]; then
-            echo "[ ERROR ]: The file or directory \"$ARG_FILE\" does not exist."
-            exit 128
-        fi
+    elif [[ "$ARG_URL" == "false" ]]; then
+        for ITEM_FILE in "${ARG_FILE[@]}";
+        do
+            if [[ ! -e "$ITEM_FILE" ]]; then
+                echo "[ ERROR ]: The file or directory \"$ITEM_FILE\" does not exist."
+                exit 128
+            fi
+        done
+    elif [[ "$ARG_URL" == "true" ]]; then
+        for ITEM_FILE in "${ARG_FILE[@]}";
+        do
+            VALIDATE_URL="$(check_url_func $ITEM_FILE)"
+            if [[ VALIDATE_URL = "false" ]]; then
+                echo "[ ERROR ]: Invalid URL [$ITEM_FILE]."
+                exit 128
+            fi
+        done
     fi
 
-    if [[ $ARG_PREFIX = '' ]]; then
-        echo "[ ERROR ]: You must to provide the \"PREFIX\" of NPM Packages."
+    if [[ $ARG_PUSH = "false" && $ARG_RM = "true" ]]; then
+        echo "[ ERROR ]: Processed data would be loose if you use \"-rm\" option without \"-push\"."
         exit 128
     fi
 
-    if [[ $ARG_WEIGHT = '' ]]; then
-        ARG_WEIGHT=50
+    VALIDATE_PREFIX="$(check_prefix_func $ARG_PREFIX)"
+    if [[ "$VALIDATE_PREFIX" == "false" ]]; then
+        echo "[ ERROR ]: The \"PREFIX\" must be only alphanumeric and (-), without spaces."
+        exit 128
     fi
 
-    if [[ $ARG_ZIPLV = '' ]]; then
-        ARG_ZIPLV=5
+    VALIDATE_WEIGHT="$(check_weight_func $ARG_WEIGHT)"
+    if [[ "$VALIDATE_WEIGHT" == "false" ]]; then
+        echo "[ ERROR ]: You must to provide a valid \"WEIGHT\" of chunks, a positive integer number."
+        exit 128
+    fi
+
+    VALIDATE_ZIPLEVEL="$(check_ziplevel_func $ARG_ZIPLV)"
+    if [[ "$VALIDATE_ZIPLEVEL" == "false" ]]; then
+        echo "[ ERROR ]: You must to provide a valid \"ZIP LEVEL\" compression, between 1 and 9."
+        exit 128
     fi
 
     if [[ "$ARG_UNZIP" == "true" && "$ARG_LINK" == "false" ]]; then
         echo "[ ERROR ]: To provide Auto UnZip functions, you need to link dependencies with the \"-link\" option."
     fi
 
-
     # ================================================
     # STEP 5: Sumarize arguments values
     # ================================================
 
     echo "=================================================="
-    echo "[ Resource Name ] ........... $ARG_FILE"
-    echo "[ Resource Weight ] ......... $(echo `du -hs $ARG_FILE` | awk '{print $1}')""B"
+    echo "[ Resource(s) Name(s) ] ..... ${ARG_FILE[@]}"
+    # echo "[ Resource Weight ] ......... $(echo `du -hs ${ARG_FILE[@]}` | awk '{print $1}')""B"
     echo "[ Package Prefix ] .......... $ARG_PREFIX"
     echo "[ Weight of Chunks ] ........ $ARG_WEIGHT""MB"
     echo "[ Compression Level ] ....... $ARG_ZIPLV"
@@ -166,33 +232,40 @@ elif [[ ! -e "remove.lock" ]]; then
     # STEP 6: Download resource from external URL
     # ================================================
 
+    mkdir $ARG_PREFIX       # Creating directory of archives
+    cd $ARG_PREFIX          # Moving into the directory of archives
+    
     if [[ "$ARG_URL" == "true" ]]; then
-        if [[ -e "$ARG_FILE" ]]; then
-            echo "[ ERROR ]: The file or directory \"$ARG_FILE\" already exist."
+        for ITEM_FILE in "${ARG_FILE[@]}";
+        do
+            echo "[ INFO ]: Downloading \"$ITEM_FILE\" from external URL..."
             echo "=================================================="
-            exit 128
-        elif [[ -e "$ARG_PREFIX" ]]; then
-            echo "[ ERROR ]: The file or directory \"$ARG_PREFIX\" already exist."
-            echo "=================================================="
-            exit 128
-        else
-            echo "[ INFO ]: Downloading \"$ARG_FILE\" from external URL..."
-            echo "=================================================="
-        
-            wget -O "$ARG_PREFIX" --quiet "$ARG_FILE"
 
-            ARG_FILE=$ARG_PREFIX
-        fi
+            BASENAME_FILE="$(basename "$ITEM_FILE" | cut -d'?' -f1)"
+        
+            wget -O "$BASENAME_FILE" --quiet "$ITEM_FILE"
+        done
+    else
+        echo "[ INFO ]: Grouping files inside \"$ARG_PREFIX\" directory..."
+        echo "=================================================="
+
+        for ITEM_FILE in "${ARG_FILE[@]}";
+        do
+        
+            mv "../$ITEM_FILE" "./"
+        done
     fi
+
+    cd ../                  # Moving outside the directory of archives
 
 
     # ================================================
     # STEP 7: Check number of chunks
     # ================================================
 
-    FILE_WEIGHT="$(echo `du $ARG_FILE` | cut -d' ' -f1)"
+    FILES_WEIGHT="$(echo `du -s $ARG_PREFIX` | cut -d' ' -f1)"
 
-    WEIGHT_IN_MB="$(( ($FILE_WEIGHT + (1024 - 1) ) / 1024 ))"
+    WEIGHT_IN_MB="$(( ($FILES_WEIGHT + (1024 - 1) ) / 1024 ))"
 
     CHUNKS_NUM="$(( ($WEIGHT_IN_MB + ( $ARG_WEIGHT - 1) ) / $ARG_WEIGHT ))"
 
@@ -201,9 +274,9 @@ elif [[ ! -e "remove.lock" ]]; then
     # STEP 8: Compressing and splitting resource
     # ================================================
 
-    echo "[ INFO ]: Splitting file [ $ARG_FILE ] into [ $CHUNKS_NUM ] chunks ..."
+    echo "[ INFO ]: Splitting file(s) of [ $ARG_PREFIX ] directory into [ $CHUNKS_NUM ] chunks ..."
 
-    7za a -t7z -m0=lzma -mx=$ARG_ZIPLV -ms=on -v"$ARG_WEIGHT"m $ARG_PREFIX.7z $ARG_FILE
+    7za a -t7z -m0=lzma -mx=$ARG_ZIPLV -ms=on -v"$ARG_WEIGHT"m $ARG_PREFIX.7z $ARG_PREFIX
 
     echo "=================================================="
 
@@ -212,10 +285,10 @@ elif [[ ! -e "remove.lock" ]]; then
     # ================================================
 
     if [[ "$ARG_RM" == "true" ]]; then
-        echo "[ INFO ]: Removing original file [ $ARG_FILE ] ..."
+        echo "[ INFO ]: Removing original files [ $ARG_PREFIX ] ..."
         echo "=================================================="
 
-        rm -rf $ARG_FILE
+        rm -rf $ARG_PREFIX
     fi
 
 
@@ -347,9 +420,7 @@ elif [[ ! -e "remove.lock" ]]; then
         fi
 
         cd ../
-
-        echo $CHUNK_DIR_NAME >> remove.lock
-        
+    
         if [[ "$ARG_RM" == "true" ]]; then
             echo "        :.. Removed local package ..."
 
@@ -358,6 +429,8 @@ elif [[ ! -e "remove.lock" ]]; then
 
         echo "--------------------------------------------------"
     done
+
+    echo "${ARG_PREFIX}_${CHUNKS_NUM}" >> remove.lock
 
     echo "[ INFO ]: Processed [ $CHUNKS_NUM ] NPM chunk packages"
     echo "=================================================="
@@ -370,15 +443,72 @@ else
     echo "[ INFO ]: Preparing to unpublish NPM Packages"
     echo "=================================================="
 
-    for PACKAGE in $(cat remove.lock);
-    do
-        npm unpublish --force $PACKAGE
+    if [[ $1 == "-unpush" ]]; then
 
-        echo "     [*]: Unpublided Package: $PACKAGE"
-    done
+        for PACKAGE in $(cat remove.lock);
+        do
+            if [[ "$PACKAGE" == "$2" ]]; then
+                RM_PREFIX=$(echo "$2" | cut -d'_' -f1)
+                RM_NUM_CHUNKS=$(echo "$2" | cut -d'_' -f2)
 
-    rm -rf remove.lock
+
+                for (( i=1 ; i <= $RM_NUM_CHUNKS ; i++ ))
+                do
+
+                    if [[ $i -lt 10 ]]; then
+                        CHUNK_ITEM_NUM="00$i"
+                    elif [[ $i -ge 10 ]] && [[ $i -lt 100 ]]; then
+                        CHUNK_ITEM_NUM="0$i"
+                    else
+                        CHUNK_ITEM_NUM="$i"
+                    fi
+
+                    echo "     [*]: Unpublided Package: ${RM_PREFIX}_${CHUNK_ITEM_NUM}"
+
+                    npm unpublish --force $PACKAGE
+                done
+
+                echo "--------------------------------------------------"
+            else
+                echo "$PACKAGE" >> tmp.lock
+            fi
+        done
+
+        rm -rf "remove.lock"
+
+        if [[ -e "tmp.lock" ]]; then
+            mv "tmp.lock" "remove.lock"
+        fi
+
+    else
+
+        for PACKAGE in $(cat remove.lock);
+        do
+            RM_PREFIX=$(echo "$PACKAGE" | cut -d'_' -f1)
+            RM_NUM_CHUNKS=$(echo "$PACKAGE" | cut -d'_' -f2)
+
+
+            for (( i=1 ; i <= $RM_NUM_CHUNKS ; i++ ))
+            do
+
+                if [[ $i -lt 10 ]]; then
+                    CHUNK_ITEM_NUM="00$i"
+                elif [[ $i -ge 10 ]] && [[ $i -lt 100 ]]; then
+                    CHUNK_ITEM_NUM="0$i"
+                else
+                    CHUNK_ITEM_NUM="$i"
+                fi
+
+                echo "     [*]: Unpublided Package: ${RM_PREFIX}_${CHUNK_ITEM_NUM}"
+
+                npm unpublish --force $PACKAGE
+            done
+
+            echo "--------------------------------------------------"
+        done
+
+        rm -rf remove.lock
+    fi
 
     echo "=================================================="
-
 fi
