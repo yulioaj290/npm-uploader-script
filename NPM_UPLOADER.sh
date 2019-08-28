@@ -307,7 +307,7 @@ elif [[ ! -e "remove.lock" ]]; then
     fi
 
     if [[ ${#ARG_FILE[@]} -gt 1 && "$ARG_GITCLON" == "true" ]]; then
-        echo "${RED}[ ERROR ]: You can download only one GIT respository with the \"-gitclon\" option.${NC}"
+        echo "${RED}[ ERROR ]: You can download only one GIT repository with the \"-gitclon\" option.${NC}"
         exit 128
     fi
 
