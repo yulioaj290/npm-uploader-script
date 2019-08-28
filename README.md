@@ -1,4 +1,4 @@
-# NPM Uploader
+# NPM Uploader Script
 
 Script Bash for uploading NPM pachages to npmjs.com.
 
