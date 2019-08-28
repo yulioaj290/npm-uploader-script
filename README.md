@@ -63,6 +63,10 @@ $ bash NPM_UPLOADER.sh -url -link -unzip -rm video-clip 50 9 "http://mi.website.
 ```
   
 ```bash
+$ bash NPM_UPLOADER.sh -url -link -unzip -rm -gitclon -depsnpm my-project 50 9 "http://github.com/user/my-project.git"
+```
+  
+```bash
 $ bash NPM_UPLOADER.sh -unpush "video-clip_3"
 ```
 
@@ -83,3 +87,6 @@ $ bash NPM_UPLOADER.sh -unpush "video-clip_3"
 * __-push__: Publish all packages to 'npmjs.com' automatically. It requires to be loged in NPM in current terminal.
 * __-unzip__: Include a script into the 1st package to automatically UnZip the packages. Must be used with the '-link' option.
 * __-unpush__: Automatically unpublish the given chunks package from npmjs.com, and remove it from the __"remove.lock"__ file.
+* __-gitclon__: Download from Git Repository through "git clone" command.
+* __-depsnpm__: Install dependencies from NPM Registries to the project downloaded from Git Repository.
+* __-depsyarn__: Install dependencies from YARN Registries to the project downloaded from Git Repository.

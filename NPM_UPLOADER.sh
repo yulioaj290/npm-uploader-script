@@ -1,14 +1,66 @@
 #!/bin/bash
+#
+# Copyright 2019 Yulio Aleman Jimenez (@yulioaj290)
+# 
+# Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions 
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in 
+# the documentation and/or other materials provided with the distribution.
+#
+# 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived 
+# from this software without specific prior written permission.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT 
+# NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
+# THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) 
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# NPM_UPLOADER.sh
+# This script allows to upload automatically some resources to NPMJS.com as chunk packages.
+# The resources could be stored locally or online. 
+#
+# ================================================
+# PROMPT VARIABLES
+# ================================================
+RED=$'\e[0;31m'
+GREEN=$'\e[0;32m'
+BLUE=$'\e[0;34m'
+NC=$'\e[0m'
+
+echo "--------------------------------------------------"
+echo "|                                                |"
+echo "|                 NPM UPLOADER                   |"
+echo "|                                                |"
+echo "--------------------------------------------------"
+echo "|             Yulio Aleman Jimenez               |"
+echo "|                  @yulioaj290                   |"
+echo "--------------------------------------------------"
 
 # ================================================
 # FUNCTIONS
 # ================================================
 
+# Check if Git is installed
+check_git_func(){
+    # Must return "/usr/bin/git"
+    GIT_INSTALLED="$(echo `which git | grep 'not found'`)"
+    if [[ ! -z $GIT_INSTALLED ]]; then
+        echo "false"
+    else
+        echo "true"
+    fi
+}
+
 # Check if 7Zip is installed
 check_7zip_func(){
     # Must return "/usr/bin/7z"
-    ZIP7_INSTALLED="$(echo `whereis 7z` | awk -F "7z: " '{print $2}' | awk '{print $1}')"
-    if [[ -z $ZIP7_INSTALLED ]]; then
+    ZIP7_INSTALLED="$(echo `which 7z | grep 'not found'`)"
+    if [[ ! -z $ZIP7_INSTALLED ]]; then
         echo "false"
     else
         echo "true"
@@ -18,8 +70,8 @@ check_7zip_func(){
 # Check if NPM is installed and loged in
 check_npm_func(){
     # Must return "/usr/bin/npm"
-    NPM_INSTALLED="$(echo `whereis npm` | awk -F "npm: " '{print $2}' | awk '{print $1}')"
-    if [[ -z $NPM_INSTALLED ]]; then
+    NPM_INSTALLED="$(echo `which npm | grep 'not found'`)"
+    if [[ ! -z $NPM_INSTALLED ]]; then
         echo "installed"
     else
         # NPM_LOGED_IN="$(echo `npm whoami` | awk '{print $2}')"
@@ -28,6 +80,17 @@ check_npm_func(){
         # else
             echo "true"
         # fi
+    fi
+}
+
+# Check if YARN is installed
+check_yarn_func(){
+    # Must return "/usr/bin/7z"
+    YARN_INSTALLED="$(echo `which yarn | grep 'not found'`)"
+    if [[ ! -z $YARN_INSTALLED ]]; then
+        echo "false"
+    else
+        echo "true"
     fi
 }
 
@@ -85,27 +148,32 @@ check_ziplevel_func(){
 #   * NPM installed and loged in
 
 if [[ $(check_7zip_func) == "false" ]]; then
-    echo "[ ERROR ]: You must to install 7zip or 7zip-full package first."
+    echo "${RED}[ ERROR ]: You must to install 7zip or 7zip-full package first.${NC}"
+elif [[ $(check_git_func) == "false" ]]; then
+    echo "${RED}[ ERROR ]: You must to install Git package first.${NC}"
 elif [[ $(check_npm_func) == "installed" ]]; then
-    echo "[ ERROR ]: You must to install NPM package first."
+    echo "${RED}[ ERROR ]: You must to install NPM package first.${NC}"
 # elif [[ $(check_npm_func) == "logedin" ]]; then
-    # echo "[ ERROR ]: You must loged into the online NPM Registry."
+    # echo "${RED}[ ERROR ]: You must loged into the online NPM Registry.${NC}"
 elif [[ ! -e "remove.lock" ]]; then
 
     # ================================================
     # STEP 2: Initialize variables
     # ================================================
-    ARG_URL="false"     #   * url   : Download resource from URL
-    ARG_LINK="false"    #   * link  : Make all chunk npm packages as dependencies of the 1st chunk package
-    ARG_RM="false"      #   * rm    : Remove original resources
-    ARG_PUSH="false"    #   * push  : Publish to NPM Registry automatically
-    ARG_CRON="false"    #   * cron  : Set crontab task to automatically unpublish npm packages
-    ARG_UNZIP="false"   #   * unzip : Provide to the NPM pachages auto unzip functions
+    ARG_URL="false"         #   * url       : Download resource from URL
+    ARG_LINK="false"        #   * link      : Make all chunk npm packages as dependencies of the 1st chunk package
+    ARG_RM="false"          #   * rm        : Remove original resources
+    ARG_PUSH="false"        #   * push      : Publish to NPM Registry automatically
+    ARG_CRON="false"        #   * cron      : Set crontab task to automatically unpublish npm packages
+    ARG_UNZIP="false"       #   * unzip     : Provide to the NPM pachages auto unzip functions
+    ARG_GITCLON="false"     #   * gitclon   : Download resource as Git Repository, with 'git clone'
+    ARG_DEPSNPM="false"     #   * depsnpm   : Install NPM dependencies of a project downloaded from git repository
+    ARG_DEPSYARN="false"    #   * depsyarn  : Install NPM dependencies with YARN of a project downloaded from git repository
     #   ==============================================
-    ARG_FILE=""         #   * file  : Resource name or URL
-    ARG_PREFIX=""       #   * prefix: Prefix to use in npm packages
-    ARG_WEIGHT=""       #   * weight: Chunks weight
-    ARG_ZIPLV=""        #   * ziplv : Compression level
+    ARG_FILE=""             #   * file  : Resource name or URL
+    ARG_PREFIX=""           #   * prefix: Prefix to use in npm packages
+    ARG_WEIGHT=""           #   * weight: Chunks weight
+    ARG_ZIPLV=""            #   * ziplv : Compression level
 
 
     # Init "package.json" file vars
@@ -144,6 +212,15 @@ elif [[ ! -e "remove.lock" ]]; then
             *-unzip*) 
                 NUM_OPT_ARGS=$NUM_OPT_ARGS+1
                 ARG_UNZIP="true";;
+            *-gitclon*) 
+                NUM_OPT_ARGS=$NUM_OPT_ARGS+1
+                ARG_GITCLON="true";;
+            *-depsnpm*) 
+                NUM_OPT_ARGS=$NUM_OPT_ARGS+1
+                ARG_DEPSNPM="true";;
+            *-depsyarn*) 
+                NUM_OPT_ARGS=$NUM_OPT_ARGS+1
+                ARG_DEPSYARN="true";;
         esac
     done
 
@@ -160,13 +237,13 @@ elif [[ ! -e "remove.lock" ]]; then
     ARG_FILE=("$@")     # Assign rest of arguments, like an array of Files/URLs
 
     if [[ $ARG_FILE = '' ]]; then
-        echo "[ ERROR ]: You must to provide the \"NAME\" of the file or directory."
+        echo "${RED}[ ERROR ]: You must to provide the \"NAME\" of the file or directory.${NC}"
         exit 128
     elif [[ "$ARG_URL" == "false" ]]; then
         for ITEM_FILE in "${ARG_FILE[@]}";
         do
             if [[ ! -e "$ITEM_FILE" ]]; then
-                echo "[ ERROR ]: The file or directory \"$ITEM_FILE\" does not exist."
+                echo "${RED}[ ERROR ]: The file or directory \"$ITEM_FILE\" does not exist.${NC}"
                 exit 128
             fi
         done
@@ -175,44 +252,70 @@ elif [[ ! -e "remove.lock" ]]; then
         do
             VALIDATE_URL="$(check_url_func $ITEM_FILE)"
             if [[ VALIDATE_URL = "false" ]]; then
-                echo "[ ERROR ]: Invalid URL [$ITEM_FILE]."
+                echo "${RED}[ ERROR ]: Invalid URL [$ITEM_FILE].${NC}"
                 exit 128
             fi
         done
     fi
 
     if [[ $ARG_PUSH = "false" && $ARG_RM = "true" ]]; then
-        echo "[ ERROR ]: Processed data would be loose if you use \"-rm\" option without \"-push\"."
+        echo "${RED}[ ERROR ]: Processed data would be loose if you use \"-rm\" option without \"-push\".${NC}"
         exit 128
     fi
 
     VALIDATE_PREFIX="$(check_prefix_func $ARG_PREFIX)"
     if [[ "$VALIDATE_PREFIX" == "false" ]]; then
-        echo "[ ERROR ]: The \"PREFIX\" must be only alphanumeric and (-), without spaces."
+        echo "${RED}[ ERROR ]: The \"PREFIX\" must be only alphanumeric and (-), without spaces.${NC}"
         exit 128
     fi
 
     VALIDATE_WEIGHT="$(check_weight_func $ARG_WEIGHT)"
     if [[ "$VALIDATE_WEIGHT" == "false" ]]; then
-        echo "[ ERROR ]: You must to provide a valid \"WEIGHT\" of chunks, a positive integer number."
+        echo "${RED}[ ERROR ]: You must to provide a valid \"WEIGHT\" of chunks, a positive integer number.${NC}"
         exit 128
     fi
 
     VALIDATE_ZIPLEVEL="$(check_ziplevel_func $ARG_ZIPLV)"
     if [[ "$VALIDATE_ZIPLEVEL" == "false" ]]; then
-        echo "[ ERROR ]: You must to provide a valid \"ZIP LEVEL\" compression, between 1 and 9."
+        echo "${RED}[ ERROR ]: You must to provide a valid \"ZIP LEVEL\" compression, between 1 and 9.${NC}"
         exit 128
     fi
 
     if [[ "$ARG_UNZIP" == "true" && "$ARG_LINK" == "false" ]]; then
-        echo "[ ERROR ]: To provide Auto UnZip functions, you need to link dependencies with the \"-link\" option."
+        echo "${RED}[ ERROR ]: To provide Auto UnZip functions, you need to link dependencies with the \"-link\" option.${NC}"
+        exit 128
+    fi
+
+    if [[ "$ARG_DEPSNPM" == "true" && "$ARG_GITCLON" == "false" ]]; then
+        echo "${RED}[ ERROR ]: To install NPM dependencies, you need to download from GIT respository with the \"-gitclon\" option.${NC}"
+        exit 128
+    fi
+
+    if [[ "$ARG_DEPSYARN" == "true" && "$ARG_GITCLON" == "false" ]]; then
+        echo "${RED}[ ERROR ]: To install dependencies with YARN, you need to download from GIT respository with the \"-gitclon\" option.${NC}"
+        exit 128
+    fi
+
+    if [[ "$ARG_DEPSYARN" == "true" && $(check_yarn_func) == "false" ]]; then
+        echo "${RED}[ ERROR ]: To install dependencies with YARN, you need to install \"YARN\" package first.${NC}"
+        exit 128
+    fi
+
+    if [[ "$ARG_URL" == "true" && "$ARG_GITCLON" == "true" ]]; then
+        echo "${RED}[ ERROR ]: You can use only one of these options [ -url | -gitclon ].${NC}"
+        exit 128
+    fi
+
+    if [[ ${#ARG_FILE[@]} -gt 1 && "$ARG_GITCLON" == "true" ]]; then
+        echo "${RED}[ ERROR ]: You can download only one GIT respository with the \"-gitclon\" option.${NC}"
+        exit 128
     fi
 
     # ================================================
     # STEP 5: Sumarize arguments values
     # ================================================
 
-    echo "=================================================="
+    echo "===================================================="
     echo "[ Resource(s) Name(s) ] ..... ${ARG_FILE[@]}"
     # echo "[ Resource Weight ] ......... $(echo `du -hs ${ARG_FILE[@]}` | awk '{print $1}')""B"
     echo "[ Package Prefix ] .......... $ARG_PREFIX"
@@ -223,9 +326,10 @@ elif [[ ! -e "remove.lock" ]]; then
     echo "[ Link Dependencies ] ....... $ARG_LINK"
     echo "[ Remove Resources ] ........ $ARG_RM"
     echo "[ Publish to NPM ] .......... $ARG_PUSH"
-    echo "[ Unpublish with CRON ] ..... $ARG_CRON"
+    # echo "[ Unpublish with CRON ] ..... $ARG_CRON"
     echo "[ Auto UnZip Functions ] .... $ARG_UNZIP"
-    echo "=================================================="
+    echo "[ Clone GIT Repository ] .... $ARG_GITCLON"
+    echo "===================================================="
 
 
     # ================================================
@@ -238,16 +342,44 @@ elif [[ ! -e "remove.lock" ]]; then
     if [[ "$ARG_URL" == "true" ]]; then
         for ITEM_FILE in "${ARG_FILE[@]}";
         do
-            echo "[ INFO ]: Downloading \"$ITEM_FILE\" from external URL..."
-            echo "=================================================="
+            echo "${GREEN}[ INFO ]: Downloading \"$ITEM_FILE\" from external URL...${NC}"
+            echo "===================================================="
 
             BASENAME_FILE="$(basename "$ITEM_FILE" | cut -d'?' -f1)"
         
             wget -O "$BASENAME_FILE" --quiet "$ITEM_FILE"
         done
+    elif [[ "$ARG_GITCLON" == "true" ]]; then
+        for ITEM_FILE in "${ARG_FILE[@]}";
+        do
+            echo "${GREEN}[ INFO ]: Cloning GIT repository \"$ITEM_FILE\" ...${NC}"
+            echo "===================================================="
+
+            URL_MINUS_PARAMS="$(echo "$ITEM_FILE" | cut -d'?' -f1)"
+
+            BASENAME_FILE="$(basename "${URL_MINUS_PARAMS%.git*}")"
+        
+            git clone "$ITEM_FILE"
+
+            if [[ "$ARG_DEPSNPM" == "true" ]]; then
+                echo "${GREEN}[ INFO ]: Installing dependencies with NPM ...${NC}"
+                echo "===================================================="
+
+                cd "$BASENAME_FILE"
+                npm install
+                cd ../
+            elif [[ "$ARG_DEPSYARN" == "true" ]]; then
+                echo "${GREEN}[ INFO ]: Installing dependencies with YARN ...${NC}"
+                echo "===================================================="
+
+                cd "$BASENAME_FILE"
+                yarn install
+                cd ../
+            fi
+        done
     else
-        echo "[ INFO ]: Grouping files inside \"$ARG_PREFIX\" directory..."
-        echo "=================================================="
+        echo "${GREEN}[ INFO ]: Grouping files inside \"$ARG_PREFIX\" directory...${NC}"
+        echo "===================================================="
 
         for ITEM_FILE in "${ARG_FILE[@]}";
         do
@@ -274,19 +406,19 @@ elif [[ ! -e "remove.lock" ]]; then
     # STEP 8: Compressing and splitting resource
     # ================================================
 
-    echo "[ INFO ]: Splitting file(s) of [ $ARG_PREFIX ] directory into [ $CHUNKS_NUM ] chunks ..."
+    echo "${GREEN}[ INFO ]: Splitting file(s) of [ $ARG_PREFIX ] directory into [ $CHUNKS_NUM ] chunks ...${NC}"
 
     7za a -t7z -m0=lzma -mx=$ARG_ZIPLV -ms=on -v"$ARG_WEIGHT"m $ARG_PREFIX.7z $ARG_PREFIX
 
-    echo "=================================================="
+    echo "===================================================="
 
     # ================================================
     # STEP 9: Removing original resource
     # ================================================
 
     if [[ "$ARG_RM" == "true" ]]; then
-        echo "[ INFO ]: Removing original files [ $ARG_PREFIX ] ..."
-        echo "=================================================="
+        echo "${GREEN}[ INFO ]: Removing original files [ $ARG_PREFIX ] ...${NC}"
+        echo "===================================================="
 
         rm -rf $ARG_PREFIX
     fi
@@ -339,8 +471,8 @@ elif [[ ! -e "remove.lock" ]]; then
     UNZIP_SCRIPT="$UNZIP_SCRIPT""7z x $ARG_PREFIX.7z.001 \n"
     UNZIP_SCRIPT="$UNZIP_SCRIPT""rm -rf $ZIP_PKG_LIST \n"
     UNZIP_SCRIPT="$UNZIP_SCRIPT""echo \"===================================\" \n"
-    UNZIP_SCRIPT="$UNZIP_SCRIPT""echo \"Remember to unpublish all pachages from 'NPMJS.com'.\" \n"
-    UNZIP_SCRIPT="$UNZIP_SCRIPT""echo \"Remember to delete the '${ARG_PREFIX}_001' package folder.\" \n"
+    UNZIP_SCRIPT="$UNZIP_SCRIPT""echo \"${NC}Remember to unpublish all pachages from 'NPMJS.com'.${NC}\" \n"
+    UNZIP_SCRIPT="$UNZIP_SCRIPT""echo \"${NC}Remember to delete the '${ARG_PREFIX}_001' package folder.${NC}\" \n"
     UNZIP_SCRIPT="$UNZIP_SCRIPT""echo \"===================================\" \n"
 
     # Setting "dependencies" of the first package to use in "package.json"
@@ -432,16 +564,16 @@ elif [[ ! -e "remove.lock" ]]; then
 
     echo "${ARG_PREFIX}_${CHUNKS_NUM}" >> remove.lock
 
-    echo "[ INFO ]: Processed [ $CHUNKS_NUM ] NPM chunk packages"
-    echo "=================================================="
+    echo "${GREEN}[ INFO ]: Processed [ $CHUNKS_NUM ] NPM chunk packages.${NC}"
+    echo "===================================================="
 
     echo "success"
 
 else
 
-    echo "=================================================="
-    echo "[ INFO ]: Preparing to unpublish NPM Packages"
-    echo "=================================================="
+    echo "===================================================="
+    echo "${GREEN}[ INFO ]: Preparing to unpublish NPM Packages ...${NC}"
+    echo "===================================================="
 
     if [[ $1 == "-unpush" ]]; then
 
@@ -510,5 +642,5 @@ else
         rm -rf remove.lock
     fi
 
-    echo "=================================================="
+    echo "===================================================="
 fi
