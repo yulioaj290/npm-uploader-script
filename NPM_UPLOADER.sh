@@ -287,12 +287,12 @@ elif [[ ! -e "remove.lock" ]]; then
     fi
 
     if [[ "$ARG_DEPSNPM" == "true" && "$ARG_GITCLON" == "false" ]]; then
-        echo "${RED}[ ERROR ]: To install NPM dependencies, you need to download from GIT respository with the \"-gitclon\" option.${NC}"
+        echo "${RED}[ ERROR ]: To install NPM dependencies, you need to download from GIT repository with the \"-gitclon\" option.${NC}"
         exit 128
     fi
 
     if [[ "$ARG_DEPSYARN" == "true" && "$ARG_GITCLON" == "false" ]]; then
-        echo "${RED}[ ERROR ]: To install dependencies with YARN, you need to download from GIT respository with the \"-gitclon\" option.${NC}"
+        echo "${RED}[ ERROR ]: To install dependencies with YARN, you need to download from GIT repository with the \"-gitclon\" option.${NC}"
         exit 128
     fi
 
