@@ -107,12 +107,31 @@ check_url_func(){
 
 # Check if given Prefix is valid
 check_prefix_func(){
-    local regex="^[a-zA-Z0-9-]*$";
+    local REGEX="^[a-zA-Z0-9-]*$";
     
-    if [[ $1 =~ $regex ]]; then
-        echo "true"
+    if [[ ! $1 =~ $REGEX ]]; then
+        echo "regex"
+
+    elif [[ -e "$1" ]]; then
+        echo "exist"
+
+    elif [[ -e "remove.lock" ]]; then
+        local PUBLISH=""
+        for PACKAGE in $(cat remove.lock);
+        do
+            RM_PREFIX=$(echo "$PACKAGE" | cut -d'_' -f1)
+            
+            if [[ "$RM_PREFIX" == "$1" ]]; then
+                PUBLISH="publish"
+                break
+            else
+                PUBLISH="true"
+            fi
+        done
+        echo "$PUBLISH"
+
     else
-        echo "false"
+        echo "true"
     fi
 }
 
@@ -155,7 +174,8 @@ elif [[ $(check_npm_func) == "installed" ]]; then
     echo "${RED}[ ERROR ]: You must to install NPM package first.${NC}"
 # elif [[ $(check_npm_func) == "logedin" ]]; then
     # echo "${RED}[ ERROR ]: You must loged into the online NPM Registry.${NC}"
-elif [[ ! -e "remove.lock" ]]; then
+# elif [[ ! -e "remove.lock" ]]; then
+elif [[ $1 != "-unpush" ]]; then
 
     # ================================================
     # STEP 2: Initialize variables
@@ -264,8 +284,14 @@ elif [[ ! -e "remove.lock" ]]; then
     fi
 
     VALIDATE_PREFIX="$(check_prefix_func $ARG_PREFIX)"
-    if [[ "$VALIDATE_PREFIX" == "false" ]]; then
+    if [[ "$VALIDATE_PREFIX" == "regex" ]]; then
         echo "${RED}[ ERROR ]: The \"PREFIX\" must be only alphanumeric and (-), without spaces.${NC}"
+        exit 128
+    elif [[ "$VALIDATE_PREFIX" == "exist" ]]; then
+        echo "${RED}[ ERROR ]: The file or directory \"$ARG_PREFIX\" already exist.${NC}"
+        exit 128
+    elif [[ "$VALIDATE_PREFIX" == "publish" ]]; then
+        echo "${RED}[ ERROR ]: A package with the prefix \"$ARG_PREFIX\" has already published.${NC}"
         exit 128
     fi
 
@@ -569,20 +595,19 @@ elif [[ ! -e "remove.lock" ]]; then
 
     echo "success"
 
-else
+elif [[ $1 == "-unpush" ]]; then
 
     echo "===================================================="
     echo "${GREEN}[ INFO ]: Preparing to unpublish NPM Packages ...${NC}"
     echo "===================================================="
 
-    if [[ $1 == "-unpush" ]]; then
+    if [[ ! -z $2 ]]; then
 
         for PACKAGE in $(cat remove.lock);
         do
             if [[ "$PACKAGE" == "$2" ]]; then
                 RM_PREFIX=$(echo "$2" | cut -d'_' -f1)
                 RM_NUM_CHUNKS=$(echo "$2" | cut -d'_' -f2)
-
 
                 for (( i=1 ; i <= $RM_NUM_CHUNKS ; i++ ))
                 do
