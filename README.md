@@ -50,8 +50,14 @@ $ bash NPM_UPLOADER.sh -link -unzip video.mp4 video-clip 50 9
 
 ------------------------
 
+### Examples
+
 ```bash
 $ bash NPM_UPLOADER.sh -link -unzip -rm -push video-clip 50 9 "video.mp4"
+```
+
+```bash
+$ bash NPM_UPLOADER.sh -url -link -unzip -rm -push video-clip 50 9 "http://mi.website.com/my-book.pdf"
 ```
 
 ```bash
